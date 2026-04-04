@@ -1,6 +1,9 @@
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { isPreviewMode } from "@/lib/preview";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   if (isPreviewMode) return NextResponse.next();
@@ -20,5 +23,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next|api/auth|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
