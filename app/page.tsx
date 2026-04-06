@@ -15,14 +15,19 @@ async function FeedPage() {
   const session = await auth();
   const posts = isPreviewMode
     ? mockPosts
-    : await db.post.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: { select: { name: true } },
-          reactions: { select: { value: true, userId: true } },
-          _count: { select: { comments: true } },
-        },
-      });
+    : await db.post
+        .findMany({
+          orderBy: { createdAt: "desc" },
+          include: {
+            author: { select: { name: true } },
+            reactions: { select: { value: true, userId: true } },
+            _count: { select: { comments: true } },
+          },
+        })
+        .catch((err) => {
+          console.error("Failed to load posts, showing empty feed:", err);
+          return [];
+        });
   const userId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
 
   return (

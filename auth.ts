@@ -7,7 +7,7 @@ import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
   adapter: PrismaAdapter(db),
   providers: [
     Google,
@@ -23,18 +23,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         
         // This is a test provider for development convenience
         if (email.endsWith("@iiitm.ac.in")) {
-          // Find or create the user in the database
-          let user = await db.user.findUnique({ where: { email } });
-          if (!user) {
-            user = await db.user.create({
-              data: {
-                email,
-                name: "Test User",
-                role: "USER"
-              }
-            });
+          try {
+            // Find or create the user in the database
+            let user = await db.user.findUnique({ where: { email } });
+            if (!user) {
+              user = await db.user.create({
+                data: {
+                  email,
+                  name: "Test User",
+                  role: "USER"
+                }
+              });
+            }
+            return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
+          } catch (err) {
+            console.error("Credentials DB unavailable, using JWT-only fallback user:", err);
+            const fallbackId = `offline-${email.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+            return { id: fallbackId, name: "Test User", email, role: "USER", isBlocked: false };
           }
-          return { id: user.id, name: user.name, email: user.email, role: user.role };
         }
         return null;
       }
@@ -42,11 +48,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       console.log("signIn callback triggered for user:", user.email);
       if (!user.email || !user.email.endsWith("@iiitm.ac.in")) {
         console.log("Email rejected (not @iiitm.ac.in):", user.email);
         return false;
+      }
+
+      // Credentials users can run in JWT-only fallback mode when DB is unavailable.
+      if (account?.provider === "credentials") {
+        return true;
       }
 
       try {
@@ -70,22 +81,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return true;
       }
     },
-    async jwt({ token, user, profile }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = (user as { role?: "USER" | "ADMIN" }).role ?? "USER";
+        token.isBlocked = (user as { isBlocked?: boolean }).isBlocked ?? false;
       }
       return token;
     },
     async session({ session, token }) {
       if (token?.id && session.user) {
         session.user.id = token.id as string;
+        session.user.role = (token.role as "USER" | "ADMIN" | undefined) ?? "USER";
+        session.user.isBlocked = Boolean(token.isBlocked);
+
+        // Fallback credential users are JWT-only and won't exist in DB.
+        if (session.user.id.startsWith("offline-")) {
+          return session;
+        }
+
+        // Keep role/block state fresh from DB when available, but don't fail auth if DB is down.
         try {
           const dbUser = await db.user.findUnique({
             where: { id: session.user.id },
             select: { role: true, isBlocked: true },
           });
-          session.user.role = dbUser?.role ?? "USER";
-          session.user.isBlocked = dbUser?.isBlocked ?? false;
+          if (dbUser) {
+            session.user.role = dbUser.role;
+            session.user.isBlocked = dbUser.isBlocked;
+          }
         } catch (err) {
           console.error("Error fetching user in session callback:", err);
         }
