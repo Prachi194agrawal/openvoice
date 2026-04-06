@@ -4,7 +4,7 @@ OpenVoice IIITM is a secure, college-only discussion platform for IIITM students
 
 ## Features
 
-- **Authentication:** Google OAuth restricted to `@iiitm.ac.in` emails (or Mock Login for dev).
+- **Authentication:** Google OAuth restricted to `@iiitm.ac.in` emails.
 - **Posting:** Create, view, and read threaded discussions.
 - **Reactions:** Like and Dislike posts.
 - **Reporting:** Robust reporting and moderation system.

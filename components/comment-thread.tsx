@@ -1,7 +1,13 @@
-import { reactionCounts, timeAgo } from "@/lib/format";
+"use client";
+
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Reply } from "lucide-react";
 import { ReactionBar } from "@/components/reaction-bar";
 import { ReportDialog } from "@/components/report-dialog";
 import { CreateCommentForm } from "@/components/create-comment-form";
+import { reactionCounts, timeAgo } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type CommentData = {
   id: string;
@@ -13,40 +19,51 @@ type CommentData = {
   reactions: Array<{ value: "LIKE" | "DISLIKE"; userId: string }>;
 };
 
-function Node({
-  comment,
-  all,
-  currentUserId,
-}: {
-  comment: CommentData;
-  all: CommentData[];
-  currentUserId?: string;
-}) {
-  const children = all.filter((item) => item.parentId === comment.id);
+function Node({ comment, tree, currentUserId, depth = 0 }: { comment: CommentData; tree: CommentData[]; currentUserId?: string; depth?: number }) {
+  const children = useMemo(() => tree.filter((item) => item.parentId === comment.id), [tree, comment.id]);
+  const [collapsed, setCollapsed] = useState(false);
+  const [replying, setReplying] = useState(false);
   const counts = reactionCounts(comment.reactions);
   const selected = comment.reactions.find((r) => r.userId === currentUserId)?.value ?? null;
 
   return (
-    <div className="mt-3 border-l pl-3">
-      <p className="text-xs text-muted-foreground">
-        {comment.author.name ?? "Student"} · {timeAgo(comment.createdAt)}
-      </p>
-      <p className="mt-1 text-sm">{comment.body}</p>
-      <div className="mt-2 flex items-center gap-2">
-        <ReactionBar
-          likes={counts.likes}
-          dislikes={counts.dislikes}
-          endpoint={`/api/comments/${comment.id}/react`}
-          selected={selected}
-        />
-        <ReportDialog commentId={comment.id} />
+    <div className={cn("mt-3 border-l border-white/10 pl-3", depth > 0 && "ml-3")}>
+      <div className={cn("rounded-2xl border border-transparent p-3 transition", replying && "border-cyan-400/30 bg-cyan-500/5")}>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {comment.author.name ?? "Student"} · {timeAgo(comment.createdAt)}
+          </p>
+          {children.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-7 rounded-lg px-2 text-xs" onClick={() => setCollapsed((v) => !v)}>
+              {collapsed ? <ChevronRight className="mr-1 size-3" /> : <ChevronDown className="mr-1 size-3" />}
+              {collapsed ? "Expand" : "Collapse"} ({children.length})
+            </Button>
+          )}
+        </div>
+        <p className="mt-1 text-sm leading-6">{comment.body}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <ReactionBar
+            likes={counts.likes}
+            dislikes={counts.dislikes}
+            endpoint={`/api/comments/${comment.id}/react`}
+            selected={selected}
+          />
+          <Button variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={() => setReplying((v) => !v)}>
+            <Reply className="mr-1 size-4" />
+            Reply
+          </Button>
+          <ReportDialog commentId={comment.id} />
+        </div>
+        {replying && (
+          <div className="mt-3 max-w-xl">
+            <CreateCommentForm postId={comment.postId} parentId={comment.id} />
+          </div>
+        )}
       </div>
-      <div className="mt-2 max-w-xl">
-        <CreateCommentForm postId={comment.postId} parentId={comment.id} />
-      </div>
-      {children.map((child) => (
-        <Node key={child.id} comment={child} all={all} currentUserId={currentUserId} />
-      ))}
+      {!collapsed &&
+        children.map((child) => (
+          <Node key={child.id} comment={child} tree={tree} currentUserId={currentUserId} depth={depth + 1} />
+        ))}
     </div>
   );
 }
@@ -56,7 +73,7 @@ export function CommentThread({ comments, currentUserId }: { comments: CommentDa
   return (
     <div>
       {roots.map((root) => (
-        <Node key={root.id} comment={root} all={comments} currentUserId={currentUserId} />
+        <Node key={root.id} comment={root} tree={comments} currentUserId={currentUserId} />
       ))}
     </div>
   );

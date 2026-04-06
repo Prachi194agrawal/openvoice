@@ -26,8 +26,11 @@ export default async function AdminPage() {
 
   return (
     <PageShell>
-      <h1 className="mb-4 text-xl font-semibold">Admin Dashboard</h1>
-      <div className="rounded-xl border bg-card p-4">
+      <div className="glass-card mb-4 rounded-3xl p-5">
+        <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Moderate reported content, resolve abuse reports, and block users.</p>
+      </div>
+      <div className="glass-card rounded-3xl p-4">
         <AdminReportsTable reports={reports} />
       </div>
     </PageShell>

@@ -24,12 +24,18 @@ export function ReactionBar({ likes, dislikes, endpoint, selected }: Props) {
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant={selected === "LIKE" ? "default" : "outline"} size="sm" onClick={() => react("LIKE")}>
+      <Button
+        variant={selected === "LIKE" ? "default" : "outline"}
+        size="sm"
+        className="rounded-xl border-white/15"
+        onClick={() => react("LIKE")}
+      >
         <ThumbsUp className="size-4" /> {likes}
       </Button>
       <Button
         variant={selected === "DISLIKE" ? "default" : "outline"}
         size="sm"
+        className="rounded-xl border-white/15"
         onClick={() => react("DISLIKE")}
       >
         <ThumbsDown className="size-4" /> {dislikes}

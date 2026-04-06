@@ -5,6 +5,7 @@ import { PostCard } from "@/components/post-card";
 import { auth } from "@/auth";
 import { isPreviewMode } from "@/lib/preview";
 import { mockPosts, mockUser } from "@/lib/mock-data";
+import { Badge } from "@/components/ui/badge";
 
 export default async function SearchPage({
   searchParams,
@@ -46,17 +47,34 @@ export default async function SearchPage({
           })
         : [];
   }
+  const matches = hydrated.length;
 
   return (
     <PageShell>
-      <form className="mb-4">
-        <Input name="q" placeholder="Search posts..." defaultValue={q} />
+      <form className="glass-card mb-4 rounded-3xl p-4">
+        <Input
+          name="q"
+          placeholder="Search posts..."
+          defaultValue={q}
+          className="rounded-xl border-white/15 bg-slate-900/60"
+        />
+        <div className="mt-3 flex items-center gap-2">
+          <Badge variant="secondary" className="rounded-full border border-white/10 bg-white/5">
+            {matches} results
+          </Badge>
+          {q ? <p className="text-xs text-muted-foreground">Keyword: {q}</p> : null}
+        </div>
       </form>
       {hydrated.length === 0 ? (
-        <p className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">No posts found.</p>
+        <p className="glass-card rounded-2xl p-4 text-sm text-muted-foreground">No posts found.</p>
       ) : (
         hydrated.map((post) => (
-          <PostCard key={post.id} post={post} currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)} />
+          <PostCard
+            key={post.id}
+            post={post}
+            highlightQuery={q}
+            currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)}
+          />
         ))
       )}
     </PageShell>

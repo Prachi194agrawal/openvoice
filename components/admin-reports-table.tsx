@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 
 type Report = {
   id: string;
@@ -14,6 +16,16 @@ type Report = {
 };
 
 export function AdminReportsTable({ reports }: { reports: Report[] }) {
+  const [filter, setFilter] = useState("");
+  const filtered = useMemo(
+    () =>
+      reports.filter((report) => {
+        const haystack = `${report.reporter.email ?? ""} ${report.reason} ${report.post?.title ?? ""} ${report.comment?.body ?? ""}`;
+        return haystack.toLowerCase().includes(filter.toLowerCase());
+      }),
+    [reports, filter]
+  );
+
   const update = async (id: string, status: "RESOLVED" | "REJECTED") => {
     const res = await fetch(`/api/reports/${id}`, {
       method: "PATCH",
@@ -32,7 +44,16 @@ export function AdminReportsTable({ reports }: { reports: Report[] }) {
   };
 
   return (
-    <Table>
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <Input
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+          placeholder="Filter by reporter, reason, or content..."
+          className="max-w-md rounded-xl border-white/10 bg-slate-900/60"
+        />
+      </div>
+      <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Reporter</TableHead>
@@ -43,20 +64,21 @@ export function AdminReportsTable({ reports }: { reports: Report[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {reports.map((r) => (
+        {filtered.map((r) => (
           <TableRow key={r.id}>
             <TableCell>{r.reporter.email}</TableCell>
             <TableCell>{r.reason}</TableCell>
             <TableCell>{r.post?.title ?? r.comment?.body?.slice(0, 60)}</TableCell>
             <TableCell>{r.status}</TableCell>
             <TableCell className="space-x-1">
-              <Button size="sm" onClick={() => update(r.id, "RESOLVED")}>Resolve</Button>
-              <Button size="sm" variant="destructive" onClick={() => update(r.id, "REJECTED")}>Reject</Button>
-              <Button size="sm" variant="outline" onClick={() => block(r.reporter.id)}>Block User</Button>
+              <Button size="sm" className="rounded-xl" onClick={() => update(r.id, "RESOLVED")}>Resolve</Button>
+              <Button size="sm" variant="destructive" className="rounded-xl" onClick={() => update(r.id, "REJECTED")}>Delete</Button>
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={() => block(r.reporter.id)}>Ban User</Button>
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
-    </Table>
+      </Table>
+    </div>
   );
 }

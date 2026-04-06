@@ -26,8 +26,13 @@ export function CreateCommentForm({ postId, parentId }: { postId: string; parent
 
   return (
     <form onSubmit={submit} className="space-y-2">
-      <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write your comment..." />
-      <Button type="submit" size="sm" disabled={loading}>
+      <Textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Write your comment..."
+        className="rounded-xl border-white/10 bg-slate-900/60"
+      />
+      <Button type="submit" size="sm" disabled={loading} className="rounded-xl">
         {loading ? "Posting..." : parentId ? "Reply" : "Comment"}
       </Button>
     </form>

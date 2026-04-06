@@ -29,12 +29,12 @@ async function FeedPage() {
     <PageShell>
       <CreatePostForm />
       {posts.length === 0 ? (
-        <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">No posts yet.</div>
+        <div className="glass-card rounded-2xl p-6 text-sm text-muted-foreground">No posts yet.</div>
       ) : (
         posts.map((post) => <PostCard key={post.id} post={post} currentUserId={userId} />)
       )}
       <div className="hidden">
-        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full animate-pulse" />
       </div>
     </PageShell>
   );

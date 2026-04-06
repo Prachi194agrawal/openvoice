@@ -36,7 +36,7 @@ export default async function PostDetailPage({ params }: { params: { postId: str
   return (
     <PageShell>
       <PostCard post={post} currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)} />
-      <div className="rounded-xl border bg-card p-4">
+      <div className="glass-card rounded-3xl p-4">
         <h2 className="mb-2 font-semibold">Comments</h2>
         <CreateCommentForm postId={post.id} />
         <CommentThread
