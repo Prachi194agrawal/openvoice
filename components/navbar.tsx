@@ -26,10 +26,10 @@ export function Navbar({ name, isAdmin }: { name?: string | null; isAdmin?: bool
     <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4">
         <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" variant="ghost" className="md:hidden">
-              <Menu className="size-5" />
-            </Button>
+          <DialogTrigger
+            render={<Button size="icon" variant="ghost" className="md:hidden" />}
+          >
+            <Menu className="size-5" />
           </DialogTrigger>
           <DialogContent className="glass-card max-w-xs rounded-3xl border-white/20 p-5">
             <nav className="mt-3 flex flex-col gap-2">
