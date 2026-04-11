@@ -12,7 +12,7 @@ export default function SignInPage() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/iiitm-campus.png')" }}
+        style={{ backgroundImage: "url('/campus-background.png')" }}
         aria-hidden
       />
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]" aria-hidden />

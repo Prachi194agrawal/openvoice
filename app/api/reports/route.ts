@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const report = await db.report.create({
       data: {
         reason: parsed.reason,
-        reporterId: user.id,
+        userId: user.id,
         postId: parsed.postId,
         commentId: parsed.commentId,
       },

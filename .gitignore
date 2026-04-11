@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# uploaded post images (keep directory locally; do not commit binaries)
+/public/uploads/
+
 # next.js
 /.next/
 /out/

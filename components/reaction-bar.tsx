@@ -8,11 +8,11 @@ type Props = {
   likes: number;
   dislikes: number;
   endpoint: string;
-  selected?: "LIKE" | "DISLIKE" | null;
+  selected?: "UPVOTE" | "DOWNVOTE" | null;
 };
 
 export function ReactionBar({ likes, dislikes, endpoint, selected }: Props) {
-  const react = async (value: "LIKE" | "DISLIKE") => {
+  const react = async (value: "UPVOTE" | "DOWNVOTE") => {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,18 +25,18 @@ export function ReactionBar({ likes, dislikes, endpoint, selected }: Props) {
   return (
     <div className="flex items-center gap-1">
       <Button
-        variant={selected === "LIKE" ? "default" : "outline"}
+        variant={selected === "UPVOTE" ? "default" : "outline"}
         size="sm"
         className="rounded-xl border-white/15"
-        onClick={() => react("LIKE")}
+        onClick={() => react("UPVOTE")}
       >
         <ThumbsUp className="size-4" /> {likes}
       </Button>
       <Button
-        variant={selected === "DISLIKE" ? "default" : "outline"}
+        variant={selected === "DOWNVOTE" ? "default" : "outline"}
         size="sm"
         className="rounded-xl border-white/15"
-        onClick={() => react("DISLIKE")}
+        onClick={() => react("DOWNVOTE")}
       >
         <ThumbsDown className="size-4" /> {dislikes}
       </Button>

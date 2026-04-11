@@ -16,7 +16,7 @@ type CommentData = {
   parentId: string | null;
   postId: string;
   author: { name: string | null };
-  reactions: Array<{ value: "LIKE" | "DISLIKE"; userId: string }>;
+  reactions: Array<{ value: "UPVOTE" | "DOWNVOTE"; userId: string }>;
 };
 
 function Node({ comment, tree, currentUserId, depth = 0 }: { comment: CommentData; tree: CommentData[]; currentUserId?: string; depth?: number }) {
