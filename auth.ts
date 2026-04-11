@@ -1,16 +1,60 @@
-import NextAuth from "next-auth";
+import NextAuth, { customFetch } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
+const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "");
+const isAllowedEmail = (email?: string | null) => {
+  if (!email) return false;
+  if (!allowedDomain) return true;
+  return email.toLowerCase().endsWith(`@${allowedDomain}`);
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const authFetchWithRetry: typeof fetch = async (input, init) => {
+  let lastError: unknown;
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const response = await fetch(input, {
+        ...init,
+        signal: controller.signal,
+      });
+
+      if (response.status >= 500 && attempt < maxAttempts) {
+        await sleep(250 * attempt);
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        await sleep(250 * attempt);
+        continue;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Auth network request failed");
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  debug: process.env.NODE_ENV === "development",
+  debug: false,
   adapter: PrismaAdapter(db),
   providers: [
-    Google,
+    Google({
+      [customFetch]: authFetchWithRetry,
+    }),
     Credentials({
       name: "Test Account",
       credentials: {
@@ -22,7 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string;
         
         // This is a test provider for development convenience
-        if (email.endsWith("@iiitm.ac.in")) {
+        if (isAllowedEmail(email)) {
           try {
             // Find or create the user in the database
             let user = await db.user.findUnique({ where: { email } });
@@ -49,9 +93,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     async signIn({ user, account }) {
-      console.log("signIn callback triggered for user:", user.email);
-      if (!user.email || !user.email.endsWith("@iiitm.ac.in")) {
-        console.log("Email rejected (not @iiitm.ac.in):", user.email);
+      const email = user.email;
+      console.log("signIn callback triggered for user:", email);
+      if (!isAllowedEmail(email)) {
+        console.log(`Email rejected (not @${allowedDomain ?? "allowed domain"}):`, email);
         return false;
       }
 
@@ -60,18 +105,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return true;
       }
 
+      if (!email) {
+        return false;
+      }
+
       try {
         const existingUser = await db.user.findUnique({
-          where: { email: user.email },
+          where: { email },
           select: { isBlocked: true },
         });
 
         if (existingUser?.isBlocked) {
-          console.log("User is blocked:", user.email);
+          console.log("User is blocked:", email);
           return false;
         }
 
-        console.log("Sign-in accepted for:", user.email);
+        console.log("Sign-in accepted for:", email);
         return true;
       } catch (err) {
         console.error("Database error during sign-in:", err);
