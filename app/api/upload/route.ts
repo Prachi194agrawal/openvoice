@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes } from "crypto";
+import { put } from "@vercel/blob";
 import { getRequiredUser } from "@/lib/auth-helpers";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -30,9 +31,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Image must be 4MB or smaller." }, { status: 400 });
     }
 
-    const buf = Buffer.from(await file.arrayBuffer());
     const ext = extForMime(file.type);
     const name = `${randomBytes(16).toString("hex")}.${ext}`;
+
+    // In deployment, write to persistent blob storage instead of local filesystem.
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(`uploads/${name}`, file, {
+        access: "public",
+        contentType: file.type,
+      });
+      return NextResponse.json({ url: blob.url });
+    }
+
+    // Local dev fallback.
+    const buf = Buffer.from(await file.arrayBuffer());
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadDir, { recursive: true });
     await writeFile(path.join(uploadDir, name), buf);
