@@ -30,12 +30,15 @@ export function CreatePostForm() {
   const onPickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    console.log("Selected file for upload:", file.name, file.type, file.size);
     setUploadingImage(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
+      console.log("Sending FormData to /api/upload");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
+      console.log("Upload response:", res.status, data);
       if (!res.ok) {
         toast.error(data.error || "Could not upload image");
         clearImage();
