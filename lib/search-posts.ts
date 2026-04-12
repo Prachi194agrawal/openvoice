@@ -13,18 +13,28 @@ export async function searchPostIds(query: string): Promise<string[]> {
   const q = query.trim();
   if (!q) return [];
   const sw = singleSearchToken(q);
+  const likeQuery = `%${q.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
 
   const rows = await db.$queryRaw<Array<{ id: string }>>(
     Prisma.sql`
-    SELECT id FROM "Post"
-    WHERE (
-      to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, ''))
-        @@ plainto_tsquery('english', ${q})
-    )
-    OR (${sw} IS NOT NULL AND ${sw} = ANY("hashtags"))
-    ORDER BY "createdAt" DESC
-    LIMIT 30
-  `
+      SELECT id
+      FROM "Post"
+      WHERE (
+        to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, ''))
+          @@ plainto_tsquery('english', ${q})
+      )
+      OR title ILIKE ${likeQuery}
+      OR body ILIKE ${likeQuery}
+      OR EXISTS (
+        SELECT 1 FROM unnest("tags") AS t WHERE t ILIKE ${likeQuery}
+      )
+      OR EXISTS (
+        SELECT 1 FROM unnest("hashtags") AS h WHERE h ILIKE ${likeQuery}
+      )
+      ${sw ? Prisma.sql`OR ${sw} = ANY("hashtags")` : Prisma.sql``}
+      ORDER BY "createdAt" DESC
+      LIMIT 30
+    `
   );
 
   return rows.map((r) => r.id);

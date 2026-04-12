@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Reply } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronRight, Reply, Trash2 } from "lucide-react";
 import { ReactionBar } from "@/components/reaction-bar";
 import { ReportDialog } from "@/components/report-dialog";
 import { CreateCommentForm } from "@/components/create-comment-form";
@@ -15,16 +16,34 @@ type CommentData = {
   createdAt: Date;
   parentId: string | null;
   postId: string;
-  author: { name: string | null };
+  author: { id?: string; name: string | null };
   reactions: Array<{ value: "UPVOTE" | "DOWNVOTE"; userId: string }>;
 };
 
-function Node({ comment, tree, currentUserId, depth = 0 }: { comment: CommentData; tree: CommentData[]; currentUserId?: string; depth?: number }) {
+function Node({ comment, tree, currentUserId, currentUserRole = "USER", depth = 0 }: { comment: CommentData; tree: CommentData[]; currentUserId?: string; currentUserRole?: string; depth?: number }) {
+  const router = useRouter();
   const children = useMemo(() => tree.filter((item) => item.parentId === comment.id), [tree, comment.id]);
   const [collapsed, setCollapsed] = useState(false);
   const [replying, setReplying] = useState(false);
   const counts = reactionCounts(comment.reactions);
   const selected = comment.reactions.find((r) => r.userId === currentUserId)?.value ?? null;
+  const canDelete = Boolean(
+    currentUserId &&
+      (currentUserRole === "ADMIN" || currentUserId === comment.author.id)
+  );
+
+  const deleteComment = async () => {
+    if (!window.confirm("Permanently delete this comment and all of its replies?")) {
+      return;
+    }
+
+    const res = await fetch(`/api/comments/${comment.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return window.alert(data.error || "Failed to delete comment.");
+    }
+    router.refresh();
+  };
 
   return (
     <div className={cn("mt-3 border-l border-white/10 pl-3", depth > 0 && "ml-3")}>
@@ -53,6 +72,17 @@ function Node({ comment, tree, currentUserId, depth = 0 }: { comment: CommentDat
             Reply
           </Button>
           <ReportDialog commentId={comment.id} />
+          {canDelete ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-xl"
+              onClick={deleteComment}
+            >
+              <Trash2 className="mr-1 size-4" />
+              Delete
+            </Button>
+          ) : null}
         </div>
         {replying && (
           <div className="mt-3 max-w-xl">
@@ -62,18 +92,25 @@ function Node({ comment, tree, currentUserId, depth = 0 }: { comment: CommentDat
       </div>
       {!collapsed &&
         children.map((child) => (
-          <Node key={child.id} comment={child} tree={tree} currentUserId={currentUserId} depth={depth + 1} />
+          <Node
+            key={child.id}
+            comment={child}
+            tree={tree}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            depth={depth + 1}
+          />
         ))}
     </div>
   );
 }
 
-export function CommentThread({ comments, currentUserId }: { comments: CommentData[]; currentUserId?: string }) {
+export function CommentThread({ comments, currentUserId, currentUserRole = "USER" }: { comments: CommentData[]; currentUserId?: string; currentUserRole?: string }) {
   const roots = comments.filter((comment) => !comment.parentId);
   return (
     <div>
       {roots.map((root) => (
-        <Node key={root.id} comment={root} tree={comments} currentUserId={currentUserId} />
+        <Node key={root.id} comment={root} tree={comments} currentUserId={currentUserId} currentUserRole={currentUserRole} />
       ))}
     </div>
   );

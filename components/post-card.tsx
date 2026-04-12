@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Clock3, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReactionBar } from "@/components/reaction-bar";
@@ -7,6 +11,7 @@ import { reactionCounts, timeAgo } from "@/lib/format";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type PostData = {
   id: string;
@@ -16,7 +21,7 @@ type PostData = {
   tags?: string[];
   hashtags?: string[];
   createdAt: Date;
-  author: { name: string | null };
+  author: { id?: string; name: string | null };
   reactions: Array<{ value: "UPVOTE" | "DOWNVOTE" | string; userId?: string }>;
   _count?: { comments: number };
 };
@@ -35,7 +40,19 @@ function highlightText(text: string, query?: string) {
   );
 }
 
-export function PostCard({ post, currentUserId, highlightQuery }: { post: PostData; currentUserId?: string; highlightQuery?: string }) {
+export function PostCard({
+  post,
+  currentUserId,
+  currentUserRole = "USER",
+  highlightQuery,
+}: {
+  post: PostData;
+  currentUserId?: string;
+  currentUserRole?: string;
+  highlightQuery?: string;
+}) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
   const counts = reactionCounts(post.reactions);
   const rawSelected = post.reactions.find((r) => r.userId === currentUserId)?.value ?? null;
   const selected =
@@ -53,6 +70,29 @@ export function PostCard({ post, currentUserId, highlightQuery }: { post: PostDa
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const canDelete = Boolean(
+    currentUserId &&
+      (currentUserRole === "ADMIN" || currentUserId === post.author.id)
+  );
+
+  const deletePost = async () => {
+    if (!window.confirm("Permanently delete this post? This cannot be undone.")) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete post.");
+      }
+      router.refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Failed to delete post.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <Card className="glass-card mb-3 rounded-3xl border-white/15 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-400/30 hover:shadow-[0_18px_35px_rgba(2,6,23,0.65)]">
@@ -126,7 +166,20 @@ export function PostCard({ post, currentUserId, highlightQuery }: { post: PostDa
             <MessageSquare className="size-4" /> {post._count?.comments ?? 0}
           </Link>
         </div>
-        <ReportDialog postId={post.id} />
+        <div className="flex items-center gap-2">
+          <ReportDialog postId={post.id} />
+          {canDelete ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-xl"
+              onClick={deletePost}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          ) : null}
+        </div>
       </CardFooter>
     </Card>
   );

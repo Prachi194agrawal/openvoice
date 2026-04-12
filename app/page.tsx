@@ -19,7 +19,7 @@ async function FeedPage() {
         .findMany({
           orderBy: { createdAt: "desc" },
           include: {
-            author: { select: { name: true } },
+            author: { select: { id: true, name: true } },
             reactions: { select: { value: true, userId: true } },
             _count: { select: { comments: true } },
           },
@@ -28,7 +28,8 @@ async function FeedPage() {
           console.error("Failed to load posts, showing empty feed:", err);
           return [];
         });
-  const userId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
+  const currentUserId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
+  const currentUserRole = session?.user?.role ?? (isPreviewMode ? mockUser.role : "USER");
 
   return (
     <PageShell>
@@ -36,7 +37,14 @@ async function FeedPage() {
       {posts.length === 0 ? (
         <div className="glass-card rounded-2xl p-6 text-sm text-muted-foreground">No posts yet.</div>
       ) : (
-        posts.map((post) => <PostCard key={post.id} post={post} currentUserId={userId} />)
+        posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+          />
+        ))
       )}
       <div className="hidden">
         <Skeleton className="h-16 w-full animate-pulse" />

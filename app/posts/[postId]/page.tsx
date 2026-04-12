@@ -18,11 +18,11 @@ export default async function PostDetailPage({ params }: { params: { postId: str
     : await db.post.findUnique({
         where: { id: params.postId },
         include: {
-          author: { select: { name: true } },
+          author: { select: { id: true, name: true } },
           reactions: { select: { value: true, userId: true } },
           comments: {
             include: {
-              author: { select: { name: true } },
+              author: { select: { id: true, name: true } },
               reactions: { select: { value: true, userId: true } },
             },
             orderBy: { createdAt: "asc" },
@@ -32,16 +32,23 @@ export default async function PostDetailPage({ params }: { params: { postId: str
       });
 
   if (!post) notFound();
+  const currentUserId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
+  const currentUserRole = session?.user?.role ?? (isPreviewMode ? mockUser.role : "USER");
 
   return (
     <PageShell>
-      <PostCard post={post} currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)} />
+      <PostCard
+        post={post}
+        currentUserId={currentUserId}
+        currentUserRole={currentUserRole}
+      />
       <div className="glass-card rounded-3xl p-4">
         <h2 className="mb-2 font-semibold">Comments</h2>
         <CreateCommentForm postId={post.id} />
         <CommentThread
           comments={post.comments}
-          currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
         />
       </div>
     </PageShell>

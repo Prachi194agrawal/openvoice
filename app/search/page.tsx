@@ -44,7 +44,7 @@ export default async function SearchPage({
         ? await db.post.findMany({
             where: { id: { in: ids } },
             include: {
-              author: { select: { name: true } },
+              author: { select: { id: true, name: true } },
               reactions: { select: { value: true, userId: true } },
               _count: { select: { comments: true } },
             },
@@ -53,6 +53,8 @@ export default async function SearchPage({
         : [];
   }
   const matches = hydrated.length;
+  const currentUserId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
+  const currentUserRole = session?.user?.role ?? (isPreviewMode ? mockUser.role : "USER");
 
   return (
     <PageShell>
@@ -78,7 +80,8 @@ export default async function SearchPage({
             key={post.id}
             post={post}
             highlightQuery={q}
-            currentUserId={session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined)}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
           />
         ))
       )}
