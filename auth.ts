@@ -2,11 +2,9 @@ import NextAuth, { customFetch } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
-
-const ADMIN_EMAIL = "123@iiitm.ac.in";
-const ADMIN_PASSWORD = "123456";
 
 const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "");
 const isAllowedEmail = (email?: string | null) => {
@@ -70,24 +68,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) return null;
         if (!isAllowedEmail(email)) return null;
-        if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) return null;
 
         try {
-          const user = await db.user.upsert({
-            where: { email },
-            update: {
-              role: "ADMIN",
-              isBlocked: false,
-              name: "Admin",
-            },
-            create: {
-              email,
-              role: "ADMIN",
-              isBlocked: false,
-              name: "Admin",
-            },
-          });
-          if (user.isBlocked) return null;
+          const user = await db.user.findUnique({ where: { email } });
+          if (!user) return null;
+          const hashedPassword = (user as { hashedPassword?: string } | null)?.hashedPassword;
+          if (!hashedPassword || user.isBlocked) return null;
+
+          const ok = await bcrypt.compare(password, hashedPassword);
+          if (!ok) return null;
 
           return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
         } catch (err) {
