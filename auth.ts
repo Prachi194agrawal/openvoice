@@ -2,6 +2,7 @@ import NextAuth, { customFetch } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
@@ -50,6 +51,7 @@ const authFetchWithRetry: typeof fetch = async (input, init) => {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   debug: false,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "dev-only-auth-secret",
   adapter: PrismaAdapter(db),
   providers: [
     Google({
@@ -62,31 +64,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
-        const email = credentials.email as string;
-        
-        // This is a test provider for development convenience
-        if (isAllowedEmail(email)) {
-          try {
-            // Find or create the user in the database
-            let user = await db.user.findUnique({ where: { email } });
-            if (!user) {
-              user = await db.user.create({
-                data: {
-                  email,
-                  name: "Test User",
-                  role: "USER"
-                }
-              });
-            }
-            return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
-          } catch (err) {
-            console.error("Credentials DB unavailable, using JWT-only fallback user:", err);
-            const fallbackId = `offline-${email.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-            return { id: fallbackId, name: "Test User", email, role: "USER", isBlocked: false };
-          }
+        const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
+        const password = typeof credentials?.password === "string" ? credentials.password : "";
+        if (!email || !password) return null;
+        if (!isAllowedEmail(email)) return null;
+
+        try {
+          const user = await db.user.findUnique({ where: { email } });
+          if (!user) return null;
+          const hashedPassword = (user as { hashedPassword?: string } | null)?.hashedPassword;
+          if (!hashedPassword || user.isBlocked) return null;
+
+          const ok = await bcrypt.compare(password, hashedPassword);
+          if (!ok) return null;
+
+          return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
+        } catch (err) {
+          console.error("Credentials auth failed:", err);
+          return null;
         }
-        return null;
       }
     })
   ],
