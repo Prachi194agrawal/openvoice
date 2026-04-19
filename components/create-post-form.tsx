@@ -30,25 +30,15 @@ export function CreatePostForm() {
   const onPickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowed.includes(file.type)) {
-      toast.error("Only JPEG, PNG, WebP, or GIF images are allowed");
-      clearImage();
-      return;
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image must be 4MB or smaller");
-      clearImage();
-      return;
-    }
-
+    console.log("Selected file for upload:", file.name, file.type, file.size);
     setUploadingImage(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
+      console.log("Sending FormData to /api/upload");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
+      console.log("Upload response:", res.status, data);
       if (!res.ok) {
         toast.error(data.error || "Could not upload image");
         clearImage();
@@ -57,9 +47,6 @@ export function CreatePostForm() {
       setImageUrl(data.url as string);
       setImagePreview(URL.createObjectURL(file));
       toast.success("Image attached");
-    } catch {
-      toast.error("Could not upload image");
-      clearImage();
     } finally {
       setUploadingImage(false);
     }
