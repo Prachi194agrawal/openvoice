@@ -53,7 +53,7 @@ const authFetchWithRetry: typeof fetch = async (input, init) => {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   debug: false,
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "dev-only-auth-secret",
+  secret: "openvoice-fixed-auth-secret",
   adapter: PrismaAdapter(db),
   providers: [
     Google({
