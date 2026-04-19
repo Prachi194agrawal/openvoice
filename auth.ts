@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
-        const email = credentials.email as string;
+        const email = (credentials.email as string).toLowerCase().trim();
         
         // This is a test provider for development convenience
         if (isAllowedEmail(email)) {
@@ -75,15 +75,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 data: {
                   email,
                   name: "Test User",
-                  role: "USER"
+                  role: "ADMIN"
                 }
+              });
+            } else if (user.role !== "ADMIN") {
+              user = await db.user.update({
+                where: { id: user.id },
+                data: { role: "ADMIN" },
               });
             }
             return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
           } catch (err) {
             console.error("Credentials DB unavailable, using JWT-only fallback user:", err);
             const fallbackId = `offline-${email.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-            return { id: fallbackId, name: "Test User", email, role: "USER", isBlocked: false };
+            return { id: fallbackId, name: "Test User", email, role: "ADMIN", isBlocked: false };
           }
         }
         return null;
