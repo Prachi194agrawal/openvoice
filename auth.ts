@@ -73,12 +73,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         const existingUser = await db.user.findUnique({
           where: { email },
-          select: { isBlocked: true },
+          select: { isBlocked: true, role: true },
         });
 
         if (existingUser?.isBlocked) {
           console.log("User is blocked:", email);
           return false;
+        }
+
+        const expectedRole = isAdminEmail(email) ? "ADMIN" : "USER";
+        if (existingUser && existingUser.role !== expectedRole) {
+          await db.user.update({
+            where: { email },
+            data: { role: expectedRole },
+          });
         }
 
         console.log("Sign-in accepted for:", email);
@@ -94,7 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: "USER" | "ADMIN" }).role ?? "USER";
+        token.role = isAdminEmail(user.email) ? "ADMIN" : "USER";
         token.isBlocked = (user as { isBlocked?: boolean }).isBlocked ?? false;
       }
       return token;
@@ -102,7 +110,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (token?.id && session.user) {
         session.user.id = token.id as string;
-        session.user.role = (token.role as "USER" | "ADMIN" | undefined) ?? "USER";
+        session.user.role = isAdminEmail(session.user.email) ? "ADMIN" : "USER";
         session.user.isBlocked = Boolean(token.isBlocked);
 
         // Fallback credential users are JWT-only and won't exist in DB.
@@ -114,10 +122,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await db.user.findUnique({
             where: { id: session.user.id },
-            select: { role: true, isBlocked: true },
+            select: { isBlocked: true },
           });
           if (dbUser) {
-            session.user.role = dbUser.role;
             session.user.isBlocked = dbUser.isBlocked;
           }
         } catch (err) {
