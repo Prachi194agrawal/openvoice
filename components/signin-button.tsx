@@ -41,14 +41,14 @@ export function SignInButton() {
       <TabsContent value="login" className="mt-5 space-y-4">
         <div className="space-y-2">
           <label className="block text-xs font-medium text-muted-foreground" htmlFor="email">
-            Admin Email
+            Email
           </label>
           <Input
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             type="email"
-            placeholder="admin123@iiitm.ac.in"
+            placeholder="Enter your email"
             className="rounded-xl border-white/10 bg-slate-900/60 placeholder:text-slate-400/60"
             autoComplete="email"
           />
@@ -63,7 +63,7 @@ export function SignInButton() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            placeholder="12345"
+            placeholder="Enter your password"
             className="rounded-xl border-white/10 bg-slate-900/60 placeholder:text-slate-400/60"
             autoComplete="current-password"
           />

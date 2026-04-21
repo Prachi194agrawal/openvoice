@@ -6,7 +6,7 @@ import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
 const ADMIN_EMAIL = "admin123@iiitm.ac.in";
-const ADMIN_PASSWORD = "12345";
+const ADMIN_PASSWORD = "123445";
 const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
 
 const isAdminEmail = (email?: string | null) => email?.toLowerCase().trim() === ADMIN_EMAIL;
@@ -25,7 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       name: "Admin Login",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: ADMIN_EMAIL },
+        email: { label: "Email", type: "email", placeholder: "Enter your email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
