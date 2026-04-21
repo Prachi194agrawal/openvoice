@@ -3,7 +3,7 @@ import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
 import { isPreviewMode } from "@/lib/preview";
 
-const ADMIN_EMAIL = "admin123@iiitm.ac.in";
+const ADMIN_EMAIL = "img_2023041@iiitm.ac.in";
 const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
 
 const { auth } = NextAuth(authConfig);

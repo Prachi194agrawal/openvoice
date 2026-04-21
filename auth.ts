@@ -1,12 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
-const ADMIN_EMAIL = "admin123@iiitm.ac.in";
-const ADMIN_PASSWORD = "123445";
+const ADMIN_EMAIL = "img_2023041@iiitm.ac.in";
 const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
 
 const isAdminEmail = (email?: string | null) => email?.toLowerCase().trim() === ADMIN_EMAIL;
@@ -20,46 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   debug: false,
   adapter: PrismaAdapter(db),
-  providers: [
-    Google({}),
-    Credentials({
-      name: "Admin Login",
-      credentials: {
-        email: { label: "Email", type: "email", placeholder: "Enter your email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        const email = credentials?.email?.toString().toLowerCase().trim();
-        const password = credentials?.password?.toString();
-
-        if (!isAdminEmail(email) || password !== ADMIN_PASSWORD) {
-          return null;
-        }
-
-        try {
-          let user = await db.user.findUnique({ where: { email: ADMIN_EMAIL } });
-          if (!user) {
-            user = await db.user.create({
-              data: {
-                email: ADMIN_EMAIL,
-                name: "Admin User",
-                role: "ADMIN",
-              },
-            });
-          } else if (user.role !== "ADMIN") {
-            user = await db.user.update({
-              where: { id: user.id },
-              data: { role: "ADMIN" },
-            });
-          }
-          return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
-        } catch (err) {
-          console.error("Credentials DB unavailable, using JWT-only fallback admin user:", err);
-          return { id: "offline-admin123", name: "Admin User", email: ADMIN_EMAIL, role: "ADMIN", isBlocked: false };
-        }
-      }
-    })
-  ],
+  providers: [Google({})],
   session: { strategy: "jwt" },
   callbacks: {
     async signIn({ user, account }) {
@@ -72,10 +31,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (!email) {
         return false;
-      }
-
-      if (account?.provider === "credentials") {
-        return true;
       }
 
       try {

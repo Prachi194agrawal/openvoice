@@ -31,8 +31,8 @@ export default function SignInPage() {
           <BookOpen className="size-5" />
           <span className="text-sm font-semibold tracking-wide">OpenVoice IIITM</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Admin Login</h1>
-        <p className="mt-2 text-sm text-slate-300">Use the approved admin account to continue.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Signup</h1>
+        <p className="mt-2 text-sm text-slate-300">Continue with your IIITM Google account.</p>
 
         <div className="mt-6">
           {isPreviewMode ? (
