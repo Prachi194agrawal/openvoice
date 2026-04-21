@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/prisma";
@@ -6,14 +7,21 @@ import { authConfig } from "./auth.config";
 
 const ADMIN_EMAIL = "admin123@iiitm.ac.in";
 const ADMIN_PASSWORD = "12345";
+const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
 
 const isAdminEmail = (email?: string | null) => email?.toLowerCase().trim() === ADMIN_EMAIL;
+const isCollegeEmail = (email?: string | null) => {
+  if (!email) return false;
+  return email.toLowerCase().endsWith(`@${COLLEGE_EMAIL_DOMAIN}`);
+};
+const isAllowedUserEmail = (email?: string | null) => isAdminEmail(email) || isCollegeEmail(email);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   debug: false,
   adapter: PrismaAdapter(db),
   providers: [
+    Google({}),
     Credentials({
       name: "Admin Login",
       credentials: {
@@ -57,8 +65,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       const email = user.email;
       console.log("signIn callback triggered for user:", email);
-      if (!isAdminEmail(email)) {
-        console.log("Email rejected (not admin account):", email);
+      if (!isAllowedUserEmail(email)) {
+        console.log("Email rejected (not allowed account):", email);
         return false;
       }
 
