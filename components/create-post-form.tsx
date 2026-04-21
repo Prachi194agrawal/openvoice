@@ -44,8 +44,13 @@ export function CreatePostForm() {
         clearImage();
         return;
       }
-      setImageUrl(data.url as string);
-      setImagePreview(URL.createObjectURL(file));
+      if (!data.url || typeof data.url !== "string") {
+        toast.error("Upload completed but image URL is invalid");
+        clearImage();
+        return;
+      }
+      setImageUrl(data.url);
+      setImagePreview(data.url);
       toast.success("Image attached");
     } finally {
       setUploadingImage(false);
