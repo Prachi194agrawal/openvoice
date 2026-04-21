@@ -1,97 +1,54 @@
-import NextAuth, { customFetch } from "next-auth";
-import Google from "next-auth/providers/google";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
-const allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "");
-const isAllowedEmail = (email?: string | null) => {
-  if (!email) return false;
-  if (!allowedDomain) return true;
-  return email.toLowerCase().endsWith(`@${allowedDomain}`);
-};
+const ADMIN_EMAIL = "admin123@iiitm.ac.in";
+const ADMIN_PASSWORD = "12345";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const authFetchWithRetry: typeof fetch = async (input, init) => {
-  let lastError: unknown;
-  const maxAttempts = 3;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    try {
-      const response = await fetch(input, {
-        ...init,
-        signal: controller.signal,
-      });
-
-      if (response.status >= 500 && attempt < maxAttempts) {
-        await sleep(250 * attempt);
-        continue;
-      }
-
-      return response;
-    } catch (error) {
-      lastError = error;
-      if (attempt < maxAttempts) {
-        await sleep(250 * attempt);
-        continue;
-      }
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error("Auth network request failed");
-};
+const isAdminEmail = (email?: string | null) => email?.toLowerCase().trim() === ADMIN_EMAIL;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   debug: false,
   adapter: PrismaAdapter(db),
   providers: [
-    Google({
-      [customFetch]: authFetchWithRetry,
-    }),
     Credentials({
-      name: "Test Account",
+      name: "Admin Login",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "img_2023041@iiitm.ac.in" },
+        email: { label: "Email", type: "email", placeholder: ADMIN_EMAIL },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
-        const email = (credentials.email as string).toLowerCase().trim();
-        
-        // This is a test provider for development convenience
-        if (isAllowedEmail(email)) {
-          try {
-            // Find or create the user in the database
-            let user = await db.user.findUnique({ where: { email } });
-            if (!user) {
-              user = await db.user.create({
-                data: {
-                  email,
-                  name: "Test User",
-                  role: "ADMIN"
-                }
-              });
-            } else if (user.role !== "ADMIN") {
-              user = await db.user.update({
-                where: { id: user.id },
-                data: { role: "ADMIN" },
-              });
-            }
-            return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
-          } catch (err) {
-            console.error("Credentials DB unavailable, using JWT-only fallback user:", err);
-            const fallbackId = `offline-${email.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-            return { id: fallbackId, name: "Test User", email, role: "ADMIN", isBlocked: false };
-          }
+        const email = credentials?.email?.toString().toLowerCase().trim();
+        const password = credentials?.password?.toString();
+
+        if (!isAdminEmail(email) || password !== ADMIN_PASSWORD) {
+          return null;
         }
-        return null;
+
+        try {
+          let user = await db.user.findUnique({ where: { email: ADMIN_EMAIL } });
+          if (!user) {
+            user = await db.user.create({
+              data: {
+                email: ADMIN_EMAIL,
+                name: "Admin User",
+                role: "ADMIN",
+              },
+            });
+          } else if (user.role !== "ADMIN") {
+            user = await db.user.update({
+              where: { id: user.id },
+              data: { role: "ADMIN" },
+            });
+          }
+          return { id: user.id, name: user.name, email: user.email, role: user.role, isBlocked: user.isBlocked };
+        } catch (err) {
+          console.error("Credentials DB unavailable, using JWT-only fallback admin user:", err);
+          return { id: "offline-admin123", name: "Admin User", email: ADMIN_EMAIL, role: "ADMIN", isBlocked: false };
+        }
       }
     })
   ],
@@ -100,18 +57,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       const email = user.email;
       console.log("signIn callback triggered for user:", email);
-      if (!isAllowedEmail(email)) {
-        console.log(`Email rejected (not @${allowedDomain ?? "allowed domain"}):`, email);
+      if (!isAdminEmail(email)) {
+        console.log("Email rejected (not admin account):", email);
         return false;
-      }
-
-      // Credentials users can run in JWT-only fallback mode when DB is unavailable.
-      if (account?.provider === "credentials") {
-        return true;
       }
 
       if (!email) {
         return false;
+      }
+
+      if (account?.provider === "credentials") {
+        return true;
       }
 
       try {
