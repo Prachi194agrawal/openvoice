@@ -10,13 +10,8 @@ OpenVoice IIITM is a secure, college-only discussion platform for IIITM students
 - **Reporting:** Robust reporting and moderation system.
 - **Search:** Full-text search for posts.
 - **Tech Stack:** Next.js 14, TypeScript, Prisma, PostgreSQL, Tailwind CSS.
-
-## Application Walkthrough
-
-Check out the full walkthrough of the OpenVoice IIITM platform in action below! It demonstrates logging in, creating posts, reacting, reporting, and searching.
-
-![Application Demonstration Flow](./public/app_demo.webp)
-
+- 
+https://openvoice-production.onrender.com
 ## Getting Started
 
 First, run the development server:
