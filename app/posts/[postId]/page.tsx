@@ -1,56 +1,7 @@
-import { notFound } from "next/navigation";
-import { auth } from "@/auth";
-import { db } from "@/lib/prisma";
-import { PageShell } from "@/components/page-shell";
-import { CreateCommentForm } from "@/components/create-comment-form";
-import { CommentThread } from "@/components/comment-thread";
-import { PostCard } from "@/components/post-card";
-import { isPreviewMode } from "@/lib/preview";
-import { mockComments, mockPosts, mockUser } from "@/lib/mock-data";
+import { AngularShell, angularMetadata } from "@/components/angular-shell";
 
-export default async function PostDetailPage({ params }: { params: { postId: string } }) {
-  const session = await auth();
-  const post = isPreviewMode
-    ? {
-        ...mockPosts.find((p) => p.id === params.postId) ?? mockPosts[0],
-        comments: mockComments,
-      }
-    : await db.post.findUnique({
-        where: { id: params.postId },
-        include: {
-          author: { select: { id: true, name: true } },
-          reactions: { select: { value: true, userId: true } },
-          comments: {
-            include: {
-              author: { select: { id: true, name: true } },
-              reactions: { select: { value: true, userId: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-          _count: { select: { comments: true } },
-        },
-      });
+export const metadata = angularMetadata;
 
-  if (!post) notFound();
-  const currentUserId = session?.user?.id ?? (isPreviewMode ? mockUser.id : undefined);
-  const currentUserRole = session?.user?.role ?? (isPreviewMode ? mockUser.role : "USER");
-
-  return (
-    <PageShell>
-      <PostCard
-        post={post}
-        currentUserId={currentUserId}
-        currentUserRole={currentUserRole}
-      />
-      <div className="glass-card rounded-3xl p-4">
-        <h2 className="mb-2 font-semibold">Comments</h2>
-        <CreateCommentForm postId={post.id} />
-        <CommentThread
-          comments={post.comments}
-          currentUserId={currentUserId}
-          currentUserRole={currentUserRole}
-        />
-      </div>
-    </PageShell>
-  );
+export default function PostDetailPage() {
+  return <AngularShell />;
 }

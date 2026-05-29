@@ -40,6 +40,9 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
+# Ensure runtime user can write local uploads when blob storage isn't configured.
+RUN mkdir -p public/uploads && chown -R nextjs:nodejs public
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next

@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "projects": {
+    "openvoice-angular": {
+      "projectType": "application",
+      "root": "src/angular",
+      "sourceRoot": "src/angular",
+      "prefix": "ov",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "public/angular",
+              "browser": ""
+            },
+            "index": "src/angular/index.html",
+            "browser": "src/angular/main.ts",
+            "polyfills": ["zone.js"],
+            "tsConfig": "tsconfig.angular.json",
+            "inlineStyleLanguage": "css",
+            "assets": [],
+            "styles": ["src/angular/styles.css"],
+            "outputHashing": "none"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "900kB",
+                  "maximumError": "1.5MB"
+                }
+              ]
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "66e4c236-1026-400e-890c-4e1fd1dac416"
+  }
+}

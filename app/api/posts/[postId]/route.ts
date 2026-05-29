@@ -15,6 +15,7 @@ export async function GET(_: Request, { params }: { params: { postId: string } }
         },
         orderBy: { createdAt: "asc" },
       },
+      _count: { select: { comments: true } },
     },
   });
 
