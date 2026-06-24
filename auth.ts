@@ -5,14 +5,16 @@ import { db } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 
 const ADMIN_EMAIL = "img_2023041@iiitm.ac.in";
-const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
+const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
+const ALLOW_ANY_EMAIL_DOMAIN = ALLOWED_EMAIL_DOMAIN === "*";
 
 const isAdminEmail = (email?: string | null) => email?.toLowerCase().trim() === ADMIN_EMAIL;
-const isCollegeEmail = (email?: string | null) => {
+const isAllowedDomainEmail = (email?: string | null) => {
   if (!email) return false;
-  return email.toLowerCase().endsWith(`@${COLLEGE_EMAIL_DOMAIN}`);
+  if (ALLOW_ANY_EMAIL_DOMAIN) return true;
+  return email.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 };
-const isAllowedUserEmail = (email?: string | null) => isAdminEmail(email) || isCollegeEmail(email);
+const isAllowedUserEmail = (email?: string | null) => isAdminEmail(email) || isAllowedDomainEmail(email);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,

@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { isPreviewMode } from "@/lib/preview";
 
 const ADMIN_EMAIL = "img_2023041@iiitm.ac.in";
-const COLLEGE_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
+const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN?.trim().toLowerCase().replace(/^@+/, "") || "iiitm.ac.in";
+const ALLOW_ANY_EMAIL_DOMAIN = ALLOWED_EMAIL_DOMAIN === "*";
 
 const { auth } = NextAuth(authConfig);
 
@@ -14,8 +15,8 @@ export default auth((req) => {
   const isAuthed = !!req.auth?.user;
   const email = req.auth?.user?.email?.toLowerCase().trim();
   const isAdminAuthed = email === ADMIN_EMAIL;
-  const isCollegeAuthed = !!email && email.endsWith(`@${COLLEGE_EMAIL_DOMAIN}`);
-  const isAllowedAuthed = isAdminAuthed || isCollegeAuthed;
+  const isAllowedDomainAuthed = !!email && (ALLOW_ANY_EMAIL_DOMAIN || email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`));
+  const isAllowedAuthed = isAdminAuthed || isAllowedDomainAuthed;
   const isSigninPage = nextUrl.pathname === "/signin";
 
   if (!isAuthed && !isSigninPage) {
